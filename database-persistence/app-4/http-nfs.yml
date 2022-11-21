@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fileserver-httpd
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /dados
+    server: 172.17.0.2
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fileserver-httpd
+spec:
+  resources:
+    requests:
+      storage: 50Gi
+  volumeName: fileserver-httpd
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: httpd
+  template:
+    metadata:
+      labels:
+        app: httpd
+    spec:
+      containers:
+      - name: httpd
+        image: httpd:latest
+        ports:
+        - containerPort: 80
+          name: httpd
+
+        volumeMounts:
+        - name: fileserver
+          mountPath: /usr/local/apache2/htdocs/
+      volumes:
+      - name: fileserver-httpd
+        persistentVolumeClaim:
+          claimName: fileserver-httpd
